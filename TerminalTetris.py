@@ -3,7 +3,6 @@ import random
 import pygame
 #from colorama import Fore as col
 #print(col.RED + 'This text is red in color')
-# I reset
 FPS = 30
 lib = {
     0: '\u25A1',
@@ -11,13 +10,13 @@ lib = {
     2: '\u25A6',
     3: '\u25A9',
     4: '\u25A0',
-    't': ['r', 'l', 'l', 'r', 'u'], #T x+1
-    'z': ['r', 'l', 'u', 'l'], #Z x+1
-    's': ['l', 'r', 'u', 'r'], #S X+1
+    't': ['r', 'l', 'l', 'r', 'u'],
+    'z': ['r', 'l', 'u', 'l'],
+    's': ['l', 'r', 'u', 'r'],
     'o': ['u', 'r', 'd'],
     'i': ['l','l','r', 'r','r'],
-    'l': ['l', 'r', 'r', 'u', ], #L x+1
-    'j': ['r', 'l', 'l', 'u', ], # J x+1
+    'l': ['l', 'r', 'r', 'u', ],
+    'j': ['r', 'l', 'l', 'u', ],
     'U': 'r',
     'D': 'l',
     'L': 'u',
@@ -87,7 +86,6 @@ vw = 10
 prevShape = []
 
 class Logic():
-
     def __init__(self):
         self.minos = ['z', 's', 'j', 'l', 't', 'o','i']
         self.bag = []
@@ -144,12 +142,12 @@ class Logic():
         else:
             return False
 
-    def validRotation(self, origin, shape, dir, offset=[0, 0]):
-        if dir == 'z':
+    def validRotation(self, origin, shape, Dir, offset=[0, 0]):
+        if Dir == 'z':
             shape = [lib[f'c{i}'] for i in shape]
-        if dir == 'u':
+        if Dir == 'u':
             shape = [lib[i.upper()] for i in shape]
-        if dir == 'a':
+        if Dir == 'a':  
             shape = [lib[f'm{i}'] for i in shape]
 
         origin = [origin[0]+offset[0], origin[1]+offset[1]]
@@ -160,7 +158,7 @@ class Logic():
                 cords.pop(i)
 
         cords = [logic.xyToyx(i) for i in cords]
-
+        
         try:
             for i in cords:
                 if board.board[i[0]][i[1]] != lib[0]:
@@ -213,7 +211,8 @@ class Logic():
 
     def srs(self, origin, shape, Dir):
         if Dir == 'a':
-            if self.validRotation(origin,shape,[0,0]):
+            if self.validRotation(origin,shape,'a',[0,0]):
+                currentShape.rotate('a',[0,0])
                 return True
             else:
                 return False
@@ -375,7 +374,8 @@ class shape():
         if dir == 'u':
             self.shape = [lib[f'{i.upper()}'] for i in self.shape]
             self.rotation = lib[self.rotation.upper()]
-        self.cords = logic.shapeToCords([self.origin[0]+ofset[0],self.origin[1]+ofset[1]], self.shape)
+        self.origin = [self.origin[0]+ofset[0],self.origin[1]+ofset[1]]
+        self.cords = logic.shapeToCords(self.origin, self.shape)
         self.printShape(4)
 
     def moveUntillGround(self):
