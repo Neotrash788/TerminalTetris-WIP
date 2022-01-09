@@ -313,7 +313,6 @@ class Logic():
 
     def grav(self):
         global prevShape
-        return None
         checkTop = False
         move = True
         if logic.onGround(currentShape.cords):
