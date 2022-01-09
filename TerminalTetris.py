@@ -1,9 +1,12 @@
-import time
-import random
 import pygame
+import time
+import pygame
+import random
+import logger
 #from colorama import Fore as col
 #print(col.RED + 'This text is red in color')
 FPS = 30
+
 lib = {
     0: '\u25A1',
     1: '\u25A7',
@@ -14,7 +17,7 @@ lib = {
     'z': ['r', 'l', 'u', 'l'],
     's': ['l', 'r', 'u', 'r'],
     'o': ['u', 'r', 'd'],
-    'i': ['l','l','r', 'r','r'],
+    'i': ['l', 'r', 'r', 'r'],
     'l': ['l', 'r', 'r', 'u', ],
     'j': ['r', 'l', 'l', 'u', ],
     'U': 'r',
@@ -79,35 +82,43 @@ srsLib = {
     'ZL5': [-1, 2]
 }
 
-#Offset is X+1
-holdOfset = ['t','z','s','l','j']
+iSpecials = {
+    # xy
+    'u': [0, 0],
+    'r': [1, 0],
+    'd': [1, -1],
+    'l': [0, -1]
+}
+
 vh = 23
 vw = 10
 prevShape = []
+prevOffset = [0, 0]
+
 
 class Logic():
     def __init__(self):
-        self.minos = ['z', 's', 'j', 'l', 't', 'o','i']
+        self.minos = ['z', 's', 'j', 'l', 't', 'o', 'i']
         self.bag = []
         for i in range(3):
             random.shuffle(self.minos)
             self.bag.append(''.join(self.minos))
             print(self.minos)
         random.shuffle(self.minos)
-        
+
         self.bagPos = 0
         self.heldPiece = None
         self.groundTime = 0
         self.heldGrid = [[lib[0] for i in range(4)]for i in range(4)]
 
-    def resetHoldDisplay(self):
-        self.heldGrid = [[lib[0] for i in range(4)]for i in range(4)]
-
     def xyToyx(self, pos):
         return [pos[1], pos[0]]
 
-    def shapeToCords(self, origin, shape):
+    def shapeToCords(self, origin, shape, ofset=(0, 0)):
+        # xy
+        origin = [origin[0] + ofset[0], origin[1] + ofset[1]]
         origin = tuple(origin)
+
         cord = origin
         cords = [cord]
         for i in shape:
@@ -142,23 +153,31 @@ class Logic():
         else:
             return False
 
-    def validRotation(self, origin, shape, Dir, offset=[0, 0]):
+    def validRotation(self, origin, shape, Dir, offset=(0, 0)):
+        global iOfset
+
         if Dir == 'z':
             shape = [lib[f'c{i}'] for i in shape]
+            rot = lib[f'c{currentShape.rotation}']
         if Dir == 'u':
             shape = [lib[i.upper()] for i in shape]
-        if Dir == 'a':  
+            rot = lib[currentShape.rotation.upper()]
+        if Dir == 'a':
             shape = [lib[f'm{i}'] for i in shape]
+            rot = lib[f'm{currentShape.rotation}']
+
+        iOfset = iSpecials[rot] if currentShape.shapeId == 'i' else (0, 0)
 
         origin = [origin[0]+offset[0], origin[1]+offset[1]]
-        cords = logic.shapeToCords(origin, shape)
+        # CHECK ADD OFFSET HERE AS WELL
+        cords = logic.shapeToCords(origin, shape, iOfset)
 
         for i in range(len(cords)-1, -1, -1):
             if cords[i] in currentShape.cords:
                 cords.pop(i)
 
         cords = [logic.xyToyx(i) for i in cords]
-        
+
         try:
             for i in cords:
                 if board.board[i[0]][i[1]] != lib[0]:
@@ -211,8 +230,8 @@ class Logic():
 
     def srs(self, origin, shape, Dir):
         if Dir == 'a':
-            if self.validRotation(origin,shape,'a',[0,0]):
-                currentShape.rotate('a',[0,0])
+            if self.validRotation(origin, shape, 'a'):
+                currentShape.rotate('a', [0, 0])
                 return True
             else:
                 return False
@@ -220,20 +239,12 @@ class Logic():
         for i in range(1, 6):
             if self.validRotation(origin, shape, Dir, srsLib[f'{Dir.upper()}{currentShape.rotation.upper()}{i}']):
                 ofset = srsLib[f'{Dir.upper()}{currentShape.rotation.upper()}{i}']
-                currentShape.rotate(Dir,ofset)
-                if ofset != [0,0]: print('SPIN')
+                currentShape.rotate(Dir, ofset)
+                if ofset != [0, 0]:
+                    self.spin = True
                 return True
         else:
             return False
-
-    def shapeDisplay(self,shape):
-        self.resetHoldDisplay()
-        ofset = 1 if self.heldPiece in holdOfset else 0 
-        cords = logic.shapeToCords([ofset,0],lib[shape]) if shape != None else []
-        cords = [self.xyToyx(cord) for cord in cords]
-        for cord in cords:
-            self.heldGrid[cord[0]][cord[1]] = lib[4]
-        return [cord for cord in self.heldGrid[::-1]]
 
     def hold(self):
         global currentShape
@@ -241,35 +252,79 @@ class Logic():
             self.heldPiece = currentShape.shapeId
             self.newShape()
         else:
-            currentShape,self.heldPiece = shape([4,21],self.heldPiece),currentShape.shapeId
-            
+            currentShape, self.heldPiece = shape(
+                [4, 21], self.heldPiece), currentShape.shapeId
+
         currentShape.printShape(4)
         board.printGrid()
+
+    def shapeDisplay(self, shape):
+        self.resetHoldDisplay()
+        cords = logic.shapeToCords([1, 0], lib[shape]) if shape != None else []
+        cords = [self.xyToyx(cord) for cord in cords]
+
+        for cord in cords:
+            self.heldGrid[cord[0]][cord[1]] = lib[4]
+        return [cord for cord in self.heldGrid[::-1]]
+
+    def resetHoldDisplay(self):
+        self.heldGrid = [[lib[0] for i in range(4)]for i in range(4)]
 
     def nextQue(self):
         que = []
         for i in range(5):
-            if self.bagPos+i<6:
+            if self.bagPos+i < 6:
                 for row in self.shapeDisplay(self.bag[0][self.bagPos+i]):
-                    if self.heldPiece != None: que.append(row)
-                    else: que.append([row[-1],row[0:3]])
+                    if self.heldPiece != None:
+                        que.append(row)
+                    else:
+                        que.append([row[-1], row[0:3]])
             else:
                 for row in self.shapeDisplay(self.bag[1][self.bagPos+i-6]):
-                    if self.heldPiece != None: que.append(row)
-                    else: que.append([row[-1],row[0:3]])
+                    if self.heldPiece != None:
+                        que.append(row)
+                    else:
+                        que.append([row[-1], row[0:3]])
         return que
+
+    def isTspin(self, cords):
+        higestH = 0
+        highestC = []
+        for cord in cords:
+            # yx
+            if cord[0] > higestH:
+                higestH = cord[0]
+        for cord in cords:
+            if cord[0] >= higestH:
+                highestC.append(cord)
+
+        if len(highestC) < 2:
+            if board.board[highestC[0][0]][highestC[0][1]+1] != lib[0] or board.board[highestC[0][0]][highestC[0][1]-1] != lib[0]:
+                return True
+        else:
+            for cord in highestC:
+                if board.board[cord[0]+1][cord[1]] != lib[0]:
+                    return True
+
+        return False
+
+    def handleSpin(self):
+        pass
 
     def grav(self):
         global prevShape
+        return None
         checkTop = False
         move = True
         if logic.onGround(currentShape.cords):
-            self.groundTime +=1
+            self.groundTime += 1
             if self.groundTime == 2:
                 prevShape = []
                 board.printGrid()
                 lineCs = logic.lineClears()
                 if lineCs != False:
+                    if currentShape.shapeId == 't' and self.isTspin(currentShape.cords):
+                        self.spin = 2
                     board.removeLines(lineCs)
                 logic.newShape()
                 checkTop = True
@@ -277,9 +332,12 @@ class Logic():
             move = False
 
         if move:
-            currentShape.origin = [currentShape.origin[0], currentShape.origin[1] - 1]
-            currentShape.cords = logic.shapeToCords(currentShape.origin, currentShape.shape)
+            currentShape.origin = [
+                currentShape.origin[0], currentShape.origin[1] - 1]
+            currentShape.cords = logic.shapeToCords(
+                currentShape.origin, currentShape.shape)
         currentShape.printShape(4)
+        self.handleSpin()
 
         board.printGrid()
 
@@ -287,6 +345,8 @@ class Logic():
             print('Topped Out')
             exit()
         checkTop = False
+
+
 logic = Logic()
 
 
@@ -341,9 +401,10 @@ class Board():
         held = [i for i in logic.shapeDisplay(logic.heldPiece)]
         currentBoard = [i for i in self.board[::-1]]
         pieceQue = logic.nextQue()
-        length = len(pieceQue) if len(pieceQue)>len(currentBoard) else len(currentBoard)
+        length = len(pieceQue) if len(pieceQue) > len(
+            currentBoard) else len(currentBoard)
 
-        while len(held) !=length:
+        while len(held) != length:
             held.append([lib[0] for i in range(4)])
 
         while len(currentBoard) != length:
@@ -356,32 +417,51 @@ class Board():
             print(f'{held[i]}||{currentBoard[i]}||{pieceQue[i]}')
 
 
+iOfset = (0, 0)
+
+
 class shape():
+    global prevOffset, iOfset
+
     def __init__(self, origin, shape):
         self.shapeId = shape
         self.origin = origin
         self.shape = lib[shape]
-        self.cords = logic.shapeToCords(self.origin, self.shape)
         self.rotation = 'u'
+        self.cords = logic.shapeToCords(self.origin, self.shape)
 
     def rotate(self, dir, ofset=[0, 0]):
+        global iOfset
+        if self.shapeId == 'o':
+            return None
+
         if dir == 'a':
             self.shape = [lib[f'm{i}'] for i in self.shape]
             self.rotation = lib[f'm{self.rotation}']
+
         if dir == 'z':
             self.shape = [lib[f'c{i}'] for i in self.shape]
             self.rotation = lib[f'c{self.rotation}']
+
         if dir == 'u':
             self.shape = [lib[f'{i.upper()}'] for i in self.shape]
             self.rotation = lib[self.rotation.upper()]
-        self.origin = [self.origin[0]+ofset[0],self.origin[1]+ofset[1]]
-        self.cords = logic.shapeToCords(self.origin, self.shape)
+
+        self.origin = [self.origin[0]+ofset[0], self.origin[1]+ofset[1]]
+        logger.consoleLog(self.rotation)
+        if self.shapeId != 'i':
+            iOfset = (0, 0)
+
+        self.cords = logic.shapeToCords(self.origin, self.shape, iOfset)
         self.printShape(4)
 
     def moveUntillGround(self):
+        global iOfset
         while not logic.onGround(self.cords):
-            currentShape.origin = [currentShape.origin[0], currentShape.origin[1] - 1]
-            currentShape.cords = logic.shapeToCords(currentShape.origin, currentShape.shape)
+            currentShape.origin = [
+                currentShape.origin[0], currentShape.origin[1] - 1]
+            currentShape.cords = logic.shapeToCords(
+                currentShape.origin, currentShape.shape, iOfset)
 
     def softDrop(self):
         self.moveUntillGround()
@@ -389,7 +469,7 @@ class shape():
         board.printGrid()
 
     def hardDrop(self):
-        global prevShape 
+        global prevShape
         self.moveUntillGround()
         board.removePrevShape(prevShape)
         self.printShape(4)
@@ -409,11 +489,14 @@ class shape():
         board.removePrevShape(prevShape)
         [board.setblock(i, id) for i in self.cords]
         prevShape = [self.cords]
-      
+
+
 board = Board()
 logic.newShape()
 pygame.init()
 pygame.display.set_mode(size=(10, 10))
+
+
 def main():
     frame = 0
     while True:
@@ -442,7 +525,7 @@ def main():
                             currentShape.origin[0]+1, currentShape.origin[1]]
 
                     currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape)
+                        currentShape.origin, currentShape.shape, iOfset)
                     currentShape.printShape(4)
 
                     board.printGrid()
@@ -453,7 +536,7 @@ def main():
                             currentShape.origin[0]-1, currentShape.origin[1]]
 
                     currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape)
+                        currentShape.origin, currentShape.shape, iOfset)
                     currentShape.printShape(4)
 
                     board.printGrid()
@@ -461,22 +544,21 @@ def main():
                 elif event.key == pygame.K_c:
                     logic.hold()
                     board.printGrid()
-                
+
                 elif event.key == pygame.K_SPACE:
                     currentShape.hardDrop()
-                
+
                 else:
-                    frame +=1
-                    if frame >30:
+                    frame += 1
+                    if frame > 30:
                         logic.grav()
                         frame = 0
         else:
-            frame +=1
+            frame += 1
             if frame > 30:
                 logic.grav()
                 frame = 0
         time.sleep(1/FPS)
-
 
 
 if __name__ == '__main__':
