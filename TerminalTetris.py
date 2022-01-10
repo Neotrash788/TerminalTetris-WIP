@@ -170,7 +170,7 @@ class Logic():
 
         origin = [origin[0]+offset[0], origin[1]+offset[1]]
         # CHECK ADD OFFSET HERE AS WELL
-        cords = logic.shapeToCords(origin, shape, iOfset)
+        cords = self.shapeToCords(origin, shape, iOfset)
 
         for i in range(len(cords)-1, -1, -1):
             if cords[i] in currentShape.cords:
@@ -180,7 +180,7 @@ class Logic():
 
         try:
             for i in cords:
-                if board.board[i[0]][i[1]] != lib[0]:
+                if board.board[i[0]][i[1]] != lib[0] or i[0] <= -1:
                     return False
             else:
                 return True
@@ -447,7 +447,6 @@ class shape():
             self.rotation = lib[self.rotation.upper()]
 
         self.origin = [self.origin[0]+ofset[0], self.origin[1]+ofset[1]]
-        logger.consoleLog(self.rotation)
         if self.shapeId != 'i':
             iOfset = (0, 0)
 
