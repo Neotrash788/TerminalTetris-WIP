@@ -82,6 +82,7 @@ srsLib = {
     'ZL5': [-1, 2]
 }
 
+
 iSpecials = {
     # xy
     'u': [0, 0],
@@ -114,13 +115,30 @@ class Logic():
     def xyToyx(self, pos):
         return [pos[1], pos[0]]
 
-    def shapeToCords(self, origin, shape, ofset=(0, 0)):
+    def shapeToCords(self, origin, shape, ofset=(0, 0),rotate = False):
+        global currentShape
         # xy
         origin = [origin[0] + ofset[0], origin[1] + ofset[1]]
         origin = tuple(origin)
 
+        try:
+            if currentShape.shapeId == 'i':
+                if rotate == False:
+                    origin = [origin[0] + iSpecials[currentShape.rotation][0],origin[1] + iSpecials[currentShape.rotation][1]]
+                else:
+                    if rotate == 'u':
+                        rot = lib[currentShape.rotation.upper()]
+                    if rotate == 'z':
+                        rot = lib[f'c{currentShape.rotation}']
+                    if rotate == 'a':
+                        rot = lib[f'm{currentShape.rotation}']
+                    origin = [origin[0] + iSpecials[rot][0],origin[1] + iSpecials[rot][1]]
+        except NameError:
+            pass
+
         cord = origin
         cords = [cord]
+
         for i in shape:
             if i == 'r':
                 cord = (cord[0] + 1, cord[1])
@@ -154,23 +172,15 @@ class Logic():
             return False
 
     def validRotation(self, origin, shape, Dir, offset=(0, 0)):
-        global iOfset
-
         if Dir == 'z':
             shape = [lib[f'c{i}'] for i in shape]
-            rot = lib[f'c{currentShape.rotation}']
         if Dir == 'u':
             shape = [lib[i.upper()] for i in shape]
-            rot = lib[currentShape.rotation.upper()]
         if Dir == 'a':
             shape = [lib[f'm{i}'] for i in shape]
-            rot = lib[f'm{currentShape.rotation}']
-
-        iOfset = iSpecials[rot] if currentShape.shapeId == 'i' else (0, 0)
 
         origin = [origin[0]+offset[0], origin[1]+offset[1]]
-        # CHECK ADD OFFSET HERE AS WELL
-        cords = self.shapeToCords(origin, shape, iOfset)
+        cords = self.shapeToCords(origin, shape,(0,0),Dir)
 
         for i in range(len(cords)-1, -1, -1):
             if cords[i] in currentShape.cords:
@@ -216,7 +226,7 @@ class Logic():
         return clearLines if not clearLines == [] else False
 
     def newShape(self):
-        global currentShape
+        global currentShape,pieceQue
         currentShape = shape([4, 21], self.bag[0][self.bagPos])
         self.bagPos += 1
         if self.bagPos == 7:
@@ -224,6 +234,7 @@ class Logic():
             random.shuffle(self.minos)
             self.bag.append(''.join(self.minos))
             self.bagPos = 0
+        pieceQue = logic.nextQue()
 
     def topedOut(self):
         return True if self.onGround(currentShape.cords) else False
@@ -260,11 +271,11 @@ class Logic():
 
     def shapeDisplay(self, shape):
         self.resetHoldDisplay()
-        cords = logic.shapeToCords([1, 0], lib[shape]) if shape != None else []
+        cords = self.shapeToCords([1, 0], lib[shape]) if shape != None else []
         cords = [self.xyToyx(cord) for cord in cords]
 
         for cord in cords:
-            self.heldGrid[cord[0]][cord[1]] = lib[4]
+            self.heldGrid[cord[0]][cord[1]] = lib[4]    
         return [cord for cord in self.heldGrid[::-1]]
 
     def resetHoldDisplay(self):
@@ -393,14 +404,14 @@ class Board():
             print('ALL CLEAR')
 
     def printGrid(self):
+        global pieceQue
         print(f"Current shape's orentation ->{currentShape.rotation}")
         print('--------------------------')
         print(f'BAG POS ->{logic.bagPos}')
         print(f'CURRENT BAG->{logic.bag}')
         held = [i for i in logic.shapeDisplay(logic.heldPiece)]
         currentBoard = [i for i in self.board[::-1]]
-        pieceQue = logic.nextQue()
-        length = len(pieceQue) if len(pieceQue) > len(
+        length = len(pieceQue ) if len(pieceQue) > len(
             currentBoard) else len(currentBoard)
 
         while len(held) != length:
@@ -415,12 +426,8 @@ class Board():
         for i in range(length):
             print(f'{held[i]}||{currentBoard[i]}||{pieceQue[i]}')
 
-
-iOfset = (0, 0)
-
-
 class shape():
-    global prevOffset, iOfset
+    global prevOffset
 
     def __init__(self, origin, shape):
         self.shapeId = shape
@@ -430,7 +437,6 @@ class shape():
         self.cords = logic.shapeToCords(self.origin, self.shape)
 
     def rotate(self, dir, ofset=[0, 0]):
-        global iOfset
         if self.shapeId == 'o':
             return None
 
@@ -447,19 +453,16 @@ class shape():
             self.rotation = lib[self.rotation.upper()]
 
         self.origin = [self.origin[0]+ofset[0], self.origin[1]+ofset[1]]
-        if self.shapeId != 'i':
-            iOfset = (0, 0)
 
-        self.cords = logic.shapeToCords(self.origin, self.shape, iOfset)
+        self.cords = logic.shapeToCords(self.origin, self.shape)
         self.printShape(4)
 
     def moveUntillGround(self):
-        global iOfset
         while not logic.onGround(self.cords):
             currentShape.origin = [
                 currentShape.origin[0], currentShape.origin[1] - 1]
             currentShape.cords = logic.shapeToCords(
-                currentShape.origin, currentShape.shape, iOfset)
+                currentShape.origin, currentShape.shape)
 
     def softDrop(self):
         self.moveUntillGround()
@@ -523,7 +526,7 @@ def main():
                             currentShape.origin[0]+1, currentShape.origin[1]]
 
                     currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape, iOfset)
+                        currentShape.origin, currentShape.shape)
                     currentShape.printShape(4)
 
                     board.printGrid()
@@ -534,7 +537,7 @@ def main():
                             currentShape.origin[0]-1, currentShape.origin[1]]
 
                     currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape, iOfset)
+                        currentShape.origin, currentShape.shape)
                     currentShape.printShape(4)
 
                     board.printGrid()
