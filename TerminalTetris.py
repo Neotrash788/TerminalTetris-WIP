@@ -1,3 +1,4 @@
+
 import pygame
 import time
 import pygame
@@ -33,8 +34,8 @@ lib = {
     'ml': 'r',
     'mr': 'l',
     '1': 'SINGLE',
-    '2': 'DOUBBLE',
-    '3': 'TRIPPLE',
+    '2': 'DOUBLE',
+    '3': 'TRIPLE',
     '4': 'TETRIS',
 }
 
@@ -114,47 +115,47 @@ class Logic():
     def xyToyx(self, pos):
         return [pos[1], pos[0]]
 
-    def shapeToCords(self, origin, shape, ofset=(0, 0)):
+    def shapeToCoords(self, origin, shape, ofset=(0, 0)):
         # xy
         origin = [origin[0] + ofset[0], origin[1] + ofset[1]]
         origin = tuple(origin)
 
-        cord = origin
-        cords = [cord]
+        coord = origin
+        coords = [coord]
         for i in shape:
             if i == 'r':
-                cord = (cord[0] + 1, cord[1])
+                coord = (coord[0] + 1, coord[1])
             if i == 'l':
-                cord = (cord[0] - 1, cord[1])
+                coord = (coord[0] - 1, coord[1])
             if i == 'u':
-                cord = (cord[0], cord[1]+1)
+                coord = (coord[0], coord[1]+1)
             if i == 'd':
-                cord = (cord[0], cord[1]-1)
-            cords.append(cord)
-        cords = [list(i) for i in cords]
-        return cords
+                coord = (coord[0], coord[1]-1)
+            coords.append(coord)
+        coords = [list(i) for i in coords]
+        return coords
 
-    def onGround(self, cords):
-        cords = [self.xyToyx(i) for i in cords]
-        # below here cords is y,x
-        for i in cords:
+    def onGround(self, coords):
+        coords = [self.xyToyx(i) for i in coords]
+        # below here coords is y,x
+        for i in coords:
             if i[0] == 0:
                 return True
 
-        newCords = [[i[0]-1, i[1]] for i in cords]
+        newcoords = [[i[0]-1, i[1]] for i in coords]
 
-        for i in range(len(newCords)-1, -1, -1):
-            if newCords[i] in cords:
-                newCords.pop(i)
+        for i in range(len(newcoords)-1, -1, -1):
+            if newcoords[i] in coords:
+                newcoords.pop(i)
 
-        for i in newCords:
+        for i in newcoords:
             if board.board[i[0]][i[1]] != lib[0]:
                 return True
         else:
             return False
 
     def validRotation(self, origin, shape, Dir, offset=(0, 0)):
-        global iOfset
+        global iOffset
 
         if Dir == 'z':
             shape = [lib[f'c{i}'] for i in shape]
@@ -166,20 +167,20 @@ class Logic():
             shape = [lib[f'm{i}'] for i in shape]
             rot = lib[f'm{currentShape.rotation}']
 
-        iOfset = iSpecials[rot] if currentShape.shapeId == 'i' else (0, 0)
+        iOffset = iSpecials[rot] if currentShape.shapeId == 'i' else (0, 0)
 
         origin = [origin[0]+offset[0], origin[1]+offset[1]]
         # CHECK ADD OFFSET HERE AS WELL
-        cords = logic.shapeToCords(origin, shape, iOfset)
+        coords = logic.shapeToCoords(origin, shape, iOffset)
 
-        for i in range(len(cords)-1, -1, -1):
-            if cords[i] in currentShape.cords:
-                cords.pop(i)
+        for i in range(len(coords)-1, -1, -1):
+            if coords[i] in currentShape.coords:
+                coords.pop(i)
 
-        cords = [logic.xyToyx(i) for i in cords]
+        coords = [logic.xyToyx(i) for i in coords]
 
         try:
-            for i in cords:
+            for i in coords:
                 if board.board[i[0]][i[1]] != lib[0]:
                     return False
             else:
@@ -189,19 +190,19 @@ class Logic():
 
     def canMove(self, dir):
         if dir == 'r':
-            cords = [[currentShape.cords[i][0]+1, currentShape.cords[i][1]]
-                     for i in range(len(currentShape.cords))]
+            coords = [[currentShape.coords[i][0]+1, currentShape.coords[i][1]]
+                     for i in range(len(currentShape.coords))]
         if dir == 'l':
-            cords = [[currentShape.cords[i][0]-1, currentShape.cords[i][1]]
-                     for i in range(len(currentShape.cords))]
+            coords = [[currentShape.coords[i][0]-1, currentShape.coords[i][1]]
+                     for i in range(len(currentShape.coords))]
 
-        for i in range(len(cords)-1, -1, -1):
-            if cords[i] in currentShape.cords:
-                cords.pop(i)
+        for i in range(len(coords)-1, -1, -1):
+            if coords[i] in currentShape.coords:
+                coords.pop(i)
 
-        cords = [logic.xyToyx(i) for i in cords]
+        coords = [logic.xyToyx(i) for i in coords]
 
-        for i in cords:
+        for i in coords:
             if i[1] < 0 or i[1] > vw - 1 or board.board[i[0]][i[1]] != lib[0]:
                 print('INVALID MOVEMENT')
                 return False
@@ -225,8 +226,8 @@ class Logic():
             self.bag.append(''.join(self.minos))
             self.bagPos = 0
 
-    def topedOut(self):
-        return True if self.onGround(currentShape.cords) else False
+    def toppedOut(self):
+        return True if self.onGround(currentShape.coords) else False
 
     def srs(self, origin, shape, Dir):
         if Dir == 'a':
@@ -260,50 +261,50 @@ class Logic():
 
     def shapeDisplay(self, shape):
         self.resetHoldDisplay()
-        cords = logic.shapeToCords([1, 0], lib[shape]) if shape != None else []
-        cords = [self.xyToyx(cord) for cord in cords]
+        coords = logic.shapeToCoords([1, 0], lib[shape]) if shape != None else []
+        coords = [self.xyToyx(coord) for coord in coords]
 
-        for cord in cords:
-            self.heldGrid[cord[0]][cord[1]] = lib[4]
-        return [cord for cord in self.heldGrid[::-1]]
+        for coord in coords:
+            self.heldGrid[coord[0]][coord[1]] = lib[4]
+        return [coord for coord in self.heldGrid[::-1]]
 
     def resetHoldDisplay(self):
         self.heldGrid = [[lib[0] for i in range(4)]for i in range(4)]
 
-    def nextQue(self):
-        que = []
+    def nextQueue(self):
+        queue = []
         for i in range(5):
             if self.bagPos+i < 6:
                 for row in self.shapeDisplay(self.bag[0][self.bagPos+i]):
                     if self.heldPiece != None:
-                        que.append(row)
+                        queue.append(row)
                     else:
-                        que.append([row[-1], row[0:3]])
+                        queue.append([row[-1], row[0:3]])
             else:
                 for row in self.shapeDisplay(self.bag[1][self.bagPos+i-6]):
                     if self.heldPiece != None:
-                        que.append(row)
+                        queue.append(row)
                     else:
-                        que.append([row[-1], row[0:3]])
-        return que
+                        queue.append([row[-1], row[0:3]])
+        return queue
 
-    def isTspin(self, cords):
+    def isTspin(self, coords):
         higestH = 0
         highestC = []
-        for cord in cords:
+        for coord in coords:
             # yx
-            if cord[0] > higestH:
-                higestH = cord[0]
-        for cord in cords:
-            if cord[0] >= higestH:
-                highestC.append(cord)
+            if coord[0] > higestH:
+                higestH = coord[0]
+        for coord in coords:
+            if coord[0] >= higestH:
+                highestC.append(coord)
 
         if len(highestC) < 2:
             if board.board[highestC[0][0]][highestC[0][1]+1] != lib[0] or board.board[highestC[0][0]][highestC[0][1]-1] != lib[0]:
                 return True
         else:
-            for cord in highestC:
-                if board.board[cord[0]+1][cord[1]] != lib[0]:
+            for coord in highestC:
+                if board.board[coord[0]+1][coord[1]] != lib[0]:
                     return True
 
         return False
@@ -315,14 +316,14 @@ class Logic():
         global prevShape
         checkTop = False
         move = True
-        if logic.onGround(currentShape.cords):
+        if logic.onGround(currentShape.coords):
             self.groundTime += 1
             if self.groundTime == 2:
                 prevShape = []
                 board.printGrid()
                 lineCs = logic.lineClears()
                 if lineCs != False:
-                    if currentShape.shapeId == 't' and self.isTspin(currentShape.cords):
+                    if currentShape.shapeId == 't' and self.isTspin(currentShape.coords):
                         self.spin = 2
                     board.removeLines(lineCs)
                 logic.newShape()
@@ -333,14 +334,14 @@ class Logic():
         if move:
             currentShape.origin = [
                 currentShape.origin[0], currentShape.origin[1] - 1]
-            currentShape.cords = logic.shapeToCords(
+            currentShape.coords = logic.shapeToCoords(
                 currentShape.origin, currentShape.shape)
         currentShape.printShape(4)
         self.handleSpin()
 
         board.printGrid()
 
-        if logic.topedOut() and checkTop:
+        if logic.toppedOut() and checkTop:
             print('Topped Out')
             exit()
         checkTop = False
@@ -399,8 +400,8 @@ class Board():
         print(f'CURRENT BAG->{logic.bag}')
         held = [i for i in logic.shapeDisplay(logic.heldPiece)]
         currentBoard = [i for i in self.board[::-1]]
-        pieceQue = logic.nextQue()
-        length = len(pieceQue) if len(pieceQue) > len(
+        pieceQueue = logic.nextQueue()
+        length = len(pieceQueue) if len(pieceQueue) > len(
             currentBoard) else len(currentBoard)
 
         while len(held) != length:
@@ -409,28 +410,28 @@ class Board():
         while len(currentBoard) != length:
             currentBoard.append([lib[0] for i in range(10)])
 
-        while len(pieceQue) != length:
-            pieceQue.append([lib[0] for i in range(4)])
+        while len(pieceQueue) != length:
+            pieceQueue.append([lib[0] for i in range(4)])
 
         for i in range(length):
-            print(f'{held[i]}||{currentBoard[i]}||{pieceQue[i]}')
+            print(f'{held[i]}||{currentBoard[i]}||{pieceQueue[i]}')
 
 
-iOfset = (0, 0)
+iOffset = (0, 0)
 
 
 class shape():
-    global prevOffset, iOfset
+    global prevOffset, iOffset
 
     def __init__(self, origin, shape):
         self.shapeId = shape
         self.origin = origin
         self.shape = lib[shape]
         self.rotation = 'u'
-        self.cords = logic.shapeToCords(self.origin, self.shape)
+        self.coords = logic.shapeToCoords(self.origin, self.shape)
 
     def rotate(self, dir, ofset=[0, 0]):
-        global iOfset
+        global iOffset
         if self.shapeId == 'o':
             return None
 
@@ -449,27 +450,27 @@ class shape():
         self.origin = [self.origin[0]+ofset[0], self.origin[1]+ofset[1]]
         logger.consoleLog(self.rotation)
         if self.shapeId != 'i':
-            iOfset = (0, 0)
+            iOffset = (0, 0)
 
-        self.cords = logic.shapeToCords(self.origin, self.shape, iOfset)
+        self.coords = logic.shapeToCoords(self.origin, self.shape, iOffset)
         self.printShape(4)
 
-    def moveUntillGround(self):
-        global iOfset
-        while not logic.onGround(self.cords):
+    def moveUntilGround(self):
+        global iOffset
+        while not logic.onGround(self.coords):
             currentShape.origin = [
                 currentShape.origin[0], currentShape.origin[1] - 1]
-            currentShape.cords = logic.shapeToCords(
-                currentShape.origin, currentShape.shape, iOfset)
+            currentShape.coords = logic.shapeToCoords(
+                currentShape.origin, currentShape.shape, iOffset)
 
     def softDrop(self):
-        self.moveUntillGround()
+        self.moveUntilGround()
         self.printShape(4)
         board.printGrid()
 
     def hardDrop(self):
         global prevShape
-        self.moveUntillGround()
+        self.moveUntilGround()
         board.removePrevShape(prevShape)
         self.printShape(4)
         prevShape = []
@@ -478,7 +479,7 @@ class shape():
             board.removeLines(lineCs)
         logic.newShape()
         board.printGrid()
-        if logic.topedOut():
+        if logic.toppedOut():
             print('Topped Out')
             exit()
 
@@ -486,8 +487,8 @@ class shape():
         global prevShape
         # board.removePrevShape(prevShape)
         board.removePrevShape(prevShape)
-        [board.setblock(i, id) for i in self.cords]
-        prevShape = [self.cords]
+        [board.setblock(i, id) for i in self.coords]
+        prevShape = [self.coords]
 
 
 board = Board()
@@ -523,8 +524,8 @@ def main():
                         currentShape.origin = [
                             currentShape.origin[0]+1, currentShape.origin[1]]
 
-                    currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape, iOfset)
+                    currentShape.coords = logic.shapeToCoords(
+                        currentShape.origin, currentShape.shape, iOffset)
                     currentShape.printShape(4)
 
                     board.printGrid()
@@ -534,8 +535,8 @@ def main():
                         currentShape.origin = [
                             currentShape.origin[0]-1, currentShape.origin[1]]
 
-                    currentShape.cords = logic.shapeToCords(
-                        currentShape.origin, currentShape.shape, iOfset)
+                    currentShape.coords = logic.shapeToCoords(
+                        currentShape.origin, currentShape.shape, iOffset)
                     currentShape.printShape(4)
 
                     board.printGrid()
