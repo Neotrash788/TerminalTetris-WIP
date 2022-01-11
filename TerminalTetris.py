@@ -1,18 +1,17 @@
 import pygame
 import time
-import pygame
 import random
 import logger
-#from colorama import Fore as col
+from colorama import Fore
 #print(col.RED + 'This text is red in color')
 FPS = 30
 
 lib = {
-    0: '\u25A1',
+    0: (Fore.WHITE,'\u25A1'),
     1: '\u25A7',
     2: '\u25A6',
     3: '\u25A9',
-    4: '\u25A0',
+    4: (Fore.RED,'\u25A0'),
     't': ['r', 'l', 'l', 'r', 'u'],
     'z': ['r', 'l', 'u', 'l'],
     's': ['l', 'r', 'u', 'r'],
@@ -424,7 +423,29 @@ class Board():
             pieceQue.append([lib[0] for i in range(4)])
 
         for i in range(length):
-            print(f'{held[i]}||{currentBoard[i]}||{pieceQue[i]}')
+            print('-------------------------------------')
+            print(currentBoard[i])
+            print(held[i])
+            print(pieceQue[i])
+            print('-------------------------------------')
+
+        for i in range(length):
+            bRow = ''
+            for ii in currentBoard[i]:
+                bRow += ii[0]+ii[1] + ' '
+            hRow = ''
+            for iii in held[i]:
+                hRow += iii[0]+iii[1] + ' '
+            pRow = ''
+            pRow += pieceQue[i][0][0] + pieceQue[i][0][1] + ' '
+            for iiii in pieceQue[i][1]:
+                try:
+                    pRow += iiii[0]+iiii[1] + ' '
+                except IndexError:
+                    pRow += '\u25A1'
+                    for i in range(0,3): pRow += '\u25A1' + ' '
+
+            print(hRow + '||' + bRow + '||' + pRow + Fore.WHITE)
 
 class shape():
     global prevOffset
