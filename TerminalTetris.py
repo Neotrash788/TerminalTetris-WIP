@@ -3,7 +3,6 @@ import time
 import random
 import logger
 from colorama import Fore
-#print(col.RED + 'This text is red in color')
 FPS = 30
 
 lib = {
@@ -12,6 +11,13 @@ lib = {
     2: '\u25A6',
     3: '\u25A9',
     4: (Fore.RED,'\u25A0'),
+    'Colz':(Fore.RED,'\u25A0'),
+    'Cols':(Fore.GREEN,'\u25A0'),
+    'Colt':(Fore.MAGENTA,'\u25A0'),
+    'Colo':(Fore.YELLOW,'\u25A0'),
+    'Coll':(Fore.WHITE,'\u25A0'),
+    'Colj':(Fore.BLUE,'\u25A0'),
+    'Coli':(Fore.CYAN,'\u25A0'),
     't': ['r', 'l', 'l', 'r', 'u'],
     'z': ['r', 'l', 'u', 'l'],
     's': ['l', 'r', 'u', 'r'],
@@ -285,16 +291,10 @@ class Logic():
         for i in range(5):
             if self.bagPos+i < 6:
                 for row in self.shapeDisplay(self.bag[0][self.bagPos+i]):
-                    if self.heldPiece != None:
-                        que.append(row)
-                    else:
-                        que.append([row[-1], row[0:3]])
+                    que.append([row[-1], row[0:3]])
             else:
                 for row in self.shapeDisplay(self.bag[1][self.bagPos+i-6]):
-                    if self.heldPiece != None:
-                        que.append(row)
-                    else:
-                        que.append([row[-1], row[0:3]])
+                    que.append([row[-1], row[0:3]])
         return que
 
     def isTspin(self, cords):
@@ -371,7 +371,10 @@ class Board():
 
     def setblock(self, pos, id):
         pos = logic.xyToyx(pos)
-        self.board[pos[0]][pos[1]] = lib[id]
+        if id != 0:
+            self.board[pos[0]][pos[1]] = lib[f'Col{id}']
+        else:
+            self.board[pos[0]][pos[1]] = lib[0]
 
     def removePrevShape(self, prevShape):
         if len(prevShape) > 0:
@@ -421,14 +424,7 @@ class Board():
 
         while len(pieceQue) != length:
             pieceQue.append([lib[0] for i in range(4)])
-
-        for i in range(length):
-            print('-------------------------------------')
-            print(currentBoard[i])
-            print(held[i])
-            print(pieceQue[i])
-            print('-------------------------------------')
-
+            
         for i in range(length):
             bRow = ''
             for ii in currentBoard[i]:
@@ -509,7 +505,7 @@ class shape():
         global prevShape
         # board.removePrevShape(prevShape)
         board.removePrevShape(prevShape)
-        [board.setblock(i, id) for i in self.cords]
+        [board.setblock(i, self.shapeId) for i in self.cords]
         prevShape = [self.cords]
 
 
