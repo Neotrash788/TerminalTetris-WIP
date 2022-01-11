@@ -280,7 +280,7 @@ class Logic():
         cords = [self.xyToyx(cord) for cord in cords]
 
         for cord in cords:
-            self.heldGrid[cord[0]][cord[1]] = lib[4]    
+            self.heldGrid[cord[0]][cord[1]] = lib[f'Col{shape}']    
         return [cord for cord in self.heldGrid[::-1]]
 
     def resetHoldDisplay(self):
@@ -424,7 +424,7 @@ class Board():
 
         while len(pieceQue) != length:
             pieceQue.append([lib[0] for i in range(4)])
-            
+
         for i in range(length):
             bRow = ''
             for ii in currentBoard[i]:
