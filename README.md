@@ -3,7 +3,7 @@ Logger module does not exist, it is something I made myself to help with debuggi
 
 Cannot be run in standart python terminal, it will have a tantrum due to the colours.
 
-Plan
+Plan\n
 Shadow:
 =====================================================
 Shadow blocks can't effect any piece movement
