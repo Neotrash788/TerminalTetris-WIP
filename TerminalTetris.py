@@ -1,7 +1,6 @@
 import pygame
 import time
 import random
-import logger
 from colorama import Fore
 FPS = 30
 
