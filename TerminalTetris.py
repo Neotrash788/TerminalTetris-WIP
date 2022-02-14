@@ -8,7 +8,7 @@ FPS = 30
 lib = {
     0: (Fore.WHITE,'\u25A1'),
     1: '\u25A7',
-    2: '\u25A6',
+    'shadow': (Fore.WHITE,'\u25A6'),
     3: '\u25A9',
     4: (Fore.RED,'\u25A0'),
     'Colz':(Fore.RED,'\u25A0'),
@@ -115,6 +115,7 @@ class Logic():
         self.bagPos = 0
         self.heldPiece = None
         self.groundTime = 0
+        self.prevShadow = []
         self.heldGrid = [[lib[0] for i in range(4)]for i in range(4)]
 
     def xyToyx(self, pos):
@@ -171,7 +172,7 @@ class Logic():
                 newCords.pop(i)
 
         for i in newCords:
-            if board.board[i[0]][i[1]] != lib[0]:
+            if board.board[i[0]][i[1]] != lib[0] and board.board[i[0]][i[1]] != lib['shadow']:
                 return True
         else:
             return False
@@ -195,7 +196,7 @@ class Logic():
 
         try:
             for i in cords:
-                if board.board[i[0]][i[1]] != lib[0] or i[0] <= -1:
+                if logic.touchingPiece(i) or i[0] <= -1:
                     return False
             else:
                 return True
@@ -217,7 +218,7 @@ class Logic():
         cords = [logic.xyToyx(i) for i in cords]
 
         for i in cords:
-            if i[1] < 0 or i[1] > vw - 1 or board.board[i[0]][i[1]] != lib[0]:
+            if i[1] < 0 or i[1] > vw - 1 or logic.touchingPiece(i):
                 print('INVALID MOVEMENT')
                 return False
         else:
@@ -309,11 +310,11 @@ class Logic():
                 highestC.append(cord)
 
         if len(highestC) < 2:
-            if board.board[highestC[0][0]][highestC[0][1]+1] != lib[0] or board.board[highestC[0][0]][highestC[0][1]-1] != lib[0]:
+            if board.board[highestC[0][0]][highestC[0][1]+1] != lib[0] and board.board[highestC[0][0]][highestC[0][1]+1] != lib['shadow'] or board.board[highestC[0][0]][highestC[0][1]-1] != lib[0] and board.board[highestC[0][0]][highestC[0][1]-1] != lib['shadow']:#CHECK#CHECK
                 return True
         else:
             for cord in highestC:
-                if board.board[cord[0]+1][cord[1]] != lib[0]:
+                if board.board[cord[0]+1][cord[1]] != lib[0] and board.board[cord[0]+1][cord[1]] != lib['shadow']:
                     return True
 
         return False
@@ -354,7 +355,31 @@ class Logic():
             print('Topped Out')
             exit()
         checkTop = False
+    
+    def touchingPiece(self,i):
+        #CHECK
+        if board.board[i[0]][i[1]] != lib[0] and board.board[i[0]][i[1]] != lib['shadow']:
+            return True
 
+    def displayShadow(self):
+        for i in self.prevShadow:
+            i = logic.xyToyx(i)
+            if board.board[i[0]][i[1]] == lib['shadow']:
+                board.board[i[0]][i[1]] = lib[0]
+
+        id = currentShape.shapeId
+        origin = currentShape.origin
+        cords = currentShape.cords
+
+        while not self.onGround(cords):
+            origin = [origin[0], origin[1] - 1]
+            cords = logic.shapeToCords(origin, currentShape.shape)
+        for i in cords:
+            i = logic.xyToyx(i)
+            print(i)
+            if board.board[i[0]][i[1]] == lib[0]:
+                board.board[i[0]][i[1]] = lib['shadow']
+        self.prevShadow = cords
 
 logic = Logic()
 
@@ -411,6 +436,9 @@ class Board():
         print('--------------------------')
         print(f'BAG POS ->{logic.bagPos}')
         print(f'CURRENT BAG->{logic.bag}')
+
+        logic.displayShadow() # CHECK
+
         held = [i for i in logic.shapeDisplay(logic.heldPiece)]
         currentBoard = [i for i in self.board[::-1]]
         length = len(pieceQue ) if len(pieceQue) > len(
@@ -441,7 +469,7 @@ class Board():
                     pRow += '\u25A1'
                     for i in range(0,3): pRow += '\u25A1' + ' '
 
-            print(hRow + '||' + bRow + '||' + pRow + Fore.WHITE)
+            print(hRow + Fore.WHITE + '||' + bRow + Fore.WHITE + '||' + pRow + Fore.WHITE)
 
 class shape():
     global prevOffset
@@ -476,10 +504,8 @@ class shape():
 
     def moveUntillGround(self):
         while not logic.onGround(self.cords):
-            currentShape.origin = [
-                currentShape.origin[0], currentShape.origin[1] - 1]
-            currentShape.cords = logic.shapeToCords(
-                currentShape.origin, currentShape.shape)
+            currentShape.origin = [currentShape.origin[0], currentShape.origin[1] - 1]
+            currentShape.cords = logic.shapeToCords(currentShape.origin, currentShape.shape)
 
     def softDrop(self):
         self.moveUntillGround()
@@ -521,7 +547,11 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                quit()
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    quit()
                 if event.key == pygame.K_DOWN:
                     currentShape.softDrop()
 
